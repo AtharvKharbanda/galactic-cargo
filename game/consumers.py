@@ -91,45 +91,69 @@ class GameConsumer(AsyncWebsocketConsumer):
             card = data.get('card')
             center = room['center_card']
             
-            is_valid = (card['planet'] == center['planet'] or 
-                        card['cargo'] == center['cargo'] or 
-                        card['cargo'] == 'Wormhole')
+            # WORMHOLE is always valid. Others must match Planet or Cargo.
+            is_valid = (card['cargo'] == 'Wormhole' or 
+                        card['planet'] == center['planet'] or 
+                        card['cargo'] == center['cargo'])
             
             if is_valid:
                 room['center_card'] = card
                 room['hand_counts'][self.role] -= 1 
                 
-                # NEW FIX: Send a private message to the person who played it to update their screen
-                await self.send(text_data=json.dumps({
-                    'type': 'remove_card',
-                    'card': card
-                }))
+                await self.send(text_data=json.dumps({'type': 'remove_card', 'card': card}))
                 
-                # WIN CONDITION CHECK
                 if room['hand_counts'][self.role] == 0:
+                    # (Keep your existing game_over logic here)
                     await self.channel_layer.group_send(
                         self.room_group_name,
-                        {
-                            'type': 'game_over',
-                            'winner': self.role,
-                            'message': f"🏆 MISSION ACCOMPLISHED: {self.role.replace('_', ' ').title()} has emptied their cargo hold!"
-                        }
+                        {'type': 'game_over', 'winner': self.role, 'message': f"🏆 VICTORY: {self.role} wins!"}
                     )
-                    return # Stop the game here!
-                
-                room['turn'] = 'player_2' if self.role == 'player_1' else 'player_1'
-                
+                    return
+
+                # --- NEW: ACTION CARD LOGIC ---
+                opponent = 'player_2' if self.role == 'player_1' else 'player_1'
+                extra_message = ""
+
+                if card['cargo'] == 'Pirate Raid':
+                    # Opponent draws 2
+                    drawn = room['deck'].draw(2)
+                    room['hand_counts'][opponent] += len(drawn)
+                    extra_message = f" 🏴‍☠️ RAID! {opponent.title()} forced to draw 2!"
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {'type': 'forced_draw', 'target': opponent, 'cards': drawn}
+                    )
+                    room['turn'] = opponent # Pass turn
+
+                elif card['cargo'] == 'Wormhole':
+                    import random
+                    planets = ['Desert', 'Jungle', 'Ice', 'Volcanic']
+                    new_planet = random.choice(planets)
+                    card['planet'] = new_planet # Mutate the card!
+                    extra_message = f" 🌀 WORMHOLE! Terminal recalibrated to {new_planet}."
+                    room['turn'] = opponent # Pass turn
+
+                elif card['cargo'] == 'Solar Flare':
+                    # Skip opponent's turn (Keep turn as self.role)
+                    extra_message = " ☀️ FLARE! Opponent's systems jammed. Go again!"
+                    room['turn'] = self.role 
+                    
+                else:
+                    # Normal turn switch for standard cargo
+                    room['turn'] = opponent
+
+                # Broadcast the final accepted move to everyone
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
                         'type': 'update_center',
                         'card': card,
                         'turn': room['turn'],
-                        'message': f"{self.role.title()} logged new cargo: {card['cargo']} at {card['planet']}"
+                        'message': f"{self.role.title()} played {card['cargo']} at {card['planet']}.{extra_message}"
                     }
                 )
             else:
-                await self.send(text_data=json.dumps({'type': 'error', 'message': f"⚠️ Denied: Cannot dock {card['planet']} {card['cargo']}."}))
+                await self.send(text_data=json.dumps({'type': 'error', 'message': '⚠️ Invalid docking coordinates.'}))
 
         # NEW ACTION: Drawing a card
         elif action == 'draw_card':
@@ -182,3 +206,11 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def update_center(self, event):
         await self.send(text_data=json.dumps(event))
+
+    async def forced_draw(self, event):
+        if self.role == event['target']:
+            await self.send(text_data=json.dumps({
+                'type': 'card_drawn_multiple',
+                'cards': event['cards'],
+                'message': "⚠️ WARNING: You were raided! Drawn 2 cards."
+            }))

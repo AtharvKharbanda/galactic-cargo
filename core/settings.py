@@ -23,9 +23,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-249_rkf71=ylup0go8577kz@vhkugjlln*g(174y5^jj3if7a2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['your-backend-name.onrender.com', 'localhost', '127.0.0.1']
+
+# Allow React app to talk to Django
+CORS_ALLOWED_ORIGINS = [
+    "https://your-frontend-name.vercel.app",
+    "http://localhost:3000",
+]
 
 
 # Application definition

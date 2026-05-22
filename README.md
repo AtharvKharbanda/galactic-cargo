@@ -2,14 +2,15 @@
 
 **Galactic Cargo** is a real-time, 2-player multiplayer card game built with a Python/Django WebSocket backend and a React/Tailwind CSS frontend. 
 
+**🎮 [PLAY THE GAME LIVE HERE](https://galactic-cargo.vercel.app/)**
+
 Take on the role of a space freighter captain. Your mission? Be the first to empty your cargo hold by successfully docking and matching shipments across the galaxy. But beware—rival captains, solar flares, and pirate raids stand in your way.
 
 ---
 
 ## 🛠️ Tech Stack
-* **Backend:** Python, Django, Django Channels (WebSockets)
-* **Frontend:** React.js
-* **Styling:** Tailwind CSS (v3)
+* **Frontend:** React.js, Tailwind CSS (Hosted on Vercel)
+* **Backend:** Python, Django, Django Channels / WebSockets (Hosted on Render)
 
 ---
 
@@ -19,7 +20,7 @@ Take on the role of a space freighter captain. Your mission? Be the first to emp
 The first player to empty their Cargo Hold (reach 0 cards) wins the game. 
 
 ### The Setup
-1. Two players connect to the terminal. 
+1. Two players connect to the terminal using the link above (open in two different browser windows/devices). 
 2. Player 1 initiates the launch sequence.
 3. Both players are dealt a starting hand of **7 cards**.
 4. One card is flipped face-up in the center to become the **Current Target Destination**.
@@ -45,22 +46,4 @@ Hidden within the deck are three types of special Action Cards. Playing these at
   * *Effect:* A Wormhole can be played on **any** card, regardless of the current Planet or Cargo. When played, the Wormhole randomly recalibrates the terminal to a brand new Target Planet, and your turn ends.
 
 ---
-
-## 💻 How to Run Locally
-
-If you want to clone this repository and run the terminal on your own machine, you will need two terminal windows to run the backend and frontend simultaneously.
-
-### 1. Start the Django Server (Backend)
-```bash
-# Navigate to the project root
-cd galactic-cargo
-
-# Activate your virtual environment (if using one)
-source venv/bin/activate  # Mac/Linux
-venv\Scripts\activate     # Windows
-
-# Install Python dependencies (ensure you have channels installed)
-pip install django channels daphne
-
-# Run the WebSocket server
-python manage.py runserver
+*Note: Because the backend is hosted on a free Render tier, the server goes to "sleep" after 15 minutes of inactivity. If the game doesn't load immediately, give it about 30-50 seconds to wake the server up!*
